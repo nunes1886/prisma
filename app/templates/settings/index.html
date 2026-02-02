@@ -1,0 +1,77 @@
+{% extends "base.html" %} {% block content %}
+<div class="container-fluid">
+  <h2 class="mb-4">⚙️ Configurações do Sistema</h2>
+
+  <div class="row">
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="card-header bg-white">
+          <h5 class="card-title mb-0">Identidade Visual</h5>
+        </div>
+        <div class="card-body">
+          <form method="POST" enctype="multipart/form-data">
+            <div class="mb-3">
+              <label class="form-label">Nome da Empresa</label>
+              <input
+                type="text"
+                name="nome_empresa"
+                class="form-control"
+                value="{{ config.nome_empresa }}"
+                required
+              />
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Logotipo (PNG ou JPG)</label>
+              <input type="file" name="logo" class="form-control" />
+              <small class="text-muted"
+                >Recomendado: Fundo transparente, altura máx 100px.</small
+              >
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Favicon (Ícone da aba - PNG)</label>
+              <input type="file" name="favicon" class="form-control" />
+              <small class="text-muted"
+                >Recomendado: Quadrado (32x32 ou 64x64) PNG transparente.</small
+              >
+            </div>
+
+            {% if config.logo_filename %}
+            <div class="mb-3 p-3 border rounded text-center bg-light">
+              <p class="text-muted mb-2">Logo Atual:</p>
+              <img
+                src="{{ url_for('static', filename=config.logo_filename) }}"
+                style="max-height: 80px; max-width: 100%"
+              />
+            </div>
+            {% endif %} {% if config.favicon_filename %}
+            <div class="mb-3 p-2 border rounded d-inline-block bg-light">
+              <small class="d-block text-muted mb-1">Ícone Atual:</small>
+              <img
+                src="{{ url_for('static', filename=config.favicon_filename) }}"
+                style="width: 32px; height: 32px"
+              />
+            </div>
+            {% endif %}
+
+            <button type="submit" class="btn btn-primary w-100">
+              💾 Salvar Alterações
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="alert alert-info">
+        <h5>💡 Dica do Desenvolvedor</h5>
+        <p>
+          Essa logo aparecerá no topo do menu lateral e futuramente nos
+          <strong>Orçamentos em PDF</strong> que vamos gerar.
+        </p>
+        <p>Escolha uma imagem de boa qualidade.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends "base.html" %} {% block content %}
+<div class="row mb-4">
+  <div class="col-md-12">
+    <h2>👋 Olá, {{ current_user.nome_completo }}!</h2>
+    <p class="text-muted">Aqui está o resumo da sua gráfica hoje.</p>
+  </div>
+</div>
+
+<div class="row mb-4">
+  <div class="col-md-6 col-lg-4">
+    <div class="card bg-primary text-white h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="text-uppercase mb-1">Faturamento Total</h6>
+            <h3 class="mb-0">R$ {{ "%.2f"|format(faturamento) }}</h3>
+          </div>
+          <div class="fs-1">💰</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6 col-lg-4">
+    <div class="card bg-success text-white h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="text-uppercase mb-1">Pedidos Realizados</h6>
+            <h3 class="mb-0">{{ total_pedidos }}</h3>
+          </div>
+          <div class="fs-1">📝</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div
+    class="card-header bg-white py-3 d-flex justify-content-between align-items-center"
+  >
+    <h5 class="m-0 font-weight-bold text-primary">Últimos Pedidos</h5>
+    <a href="{{ url_for('pedidos.novo') }}" class="btn btn-sm btn-primary"
+      >+ Novo Pedido</a
+    >
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>#ID</th>
+            <th>Cliente</th>
+            <th>Data</th>
+            <th>Status</th>
+            <th>Valor</th>
+            <th>Vendedor</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in ultimos_pedidos %}
+          <tr>
+            <td>
+              <a
+                href="{{ url_for('pedidos.visualizar', id=p.id) }}"
+                class="fw-bold text-decoration-none"
+              >
+                #{{ p.id }} ↗
+              </a>
+            </td>
+            <td>
+              <strong>{{ p.cliente.nome }}</strong>
+              {% if p.cliente.is_revenda %}
+              <small class="text-muted">(Revenda)</small>
+              {% endif %}
+            </td>
+            <td>{{ p.data_criacao.strftime('%d/%m/%Y') }}</td>
+            <td>
+              <span class="badge bg-secondary">{{ p.status }}</span>
+            </td>
+            <td class="fw-bold text-success">
+              R$ {{ "%.2f"|format(p.valor_total) }}
+            </td>
+            <td>{{ p.vendedor.username }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" class="text-center py-4 text-muted">
+              Nenhum pedido encontrado. Vamos vender! 🚀
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

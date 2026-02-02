@@ -1,0 +1,292 @@
+{% extends "base.html" %} {% block content %}
+<div class="container-fluid">
+  <form action="{{ url_for('pedidos.novo') }}" method="POST" id="formPedido">
+    <div class="card shadow-sm mb-4">
+      <div
+        class="card-header bg-dark text-white d-flex justify-content-between align-items-center"
+      >
+        <h5 class="mb-0">📝 Novo Pedido</h5>
+        <span class="badge bg-secondary">Nº Automático</span>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="fw-bold">Cliente</label>
+            <select
+              name="cliente_id"
+              id="cliente_select"
+              class="form-select"
+              required
+              onchange="atualizarPrecos()"
+            >
+              <option value="" selected disabled>
+                Selecione um cliente...
+              </option>
+
+              <optgroup label="⭐ Revendas (Parceiros)">
+                {% for c in revendas %}
+                <option value="{{ c.id }}" data-revenda="true">
+                  {{ c.nome }}
+                </option>
+                {% endfor %}
+              </optgroup>
+
+              <optgroup label="👤 Clientes Finais">
+                {% for c in clientes %}
+                <option value="{{ c.id }}" data-revenda="false">
+                  {{ c.nome }}
+                </option>
+                {% endfor %}
+              </optgroup>
+            </select>
+          </div>
+
+          <div class="col-md-3 mb-3">
+            <label>Data</label>
+            <input
+              type="date"
+              name="data"
+              class="form-control"
+              value="{{ now }}"
+            />
+          </div>
+
+          <div class="col-md-3 mb-3">
+            <label>Vendedor</label>
+            <input
+              type="text"
+              class="form-control"
+              value="{{ current_user.nome_completo }}"
+              disabled
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+      <div
+        class="card-header bg-light d-flex justify-content-between align-items-center"
+      >
+        <h5 class="mb-0 text-secondary">Itens do Pedido</h5>
+        <button
+          type="button"
+          class="btn btn-primary btn-sm"
+          onclick="adicionarItem()"
+        >
+          + Adicionar Item
+        </button>
+      </div>
+      <div class="card-body p-0">
+        <table class="table table-bordered mb-0" id="tabelaItens">
+          <thead class="table-light text-center">
+            <tr>
+              <th style="width: 30%">Material</th>
+              <th style="width: 10%">Medidas (m)</th>
+              <th style="width: 10%">Qtd</th>
+              <th style="width: 15%">Preço Unit.</th>
+              <th style="width: 15%">Subtotal</th>
+              <th style="width: 5%">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="listaItens"></tbody>
+          <tfoot class="table-light">
+            <tr>
+              <td colspan="4" class="text-end fw-bold fs-5">TOTAL GERAL:</td>
+              <td
+                colspan="2"
+                class="text-start fw-bold fs-5 text-success"
+                id="valorTotalDisplay"
+              >
+                R$ 0,00
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2">
+      <a href="{{ url_for('main.dashboard') }}" class="btn btn-secondary"
+        >Cancelar</a
+      >
+      <button type="submit" class="btn btn-success btn-lg">
+        💾 Finalizar Pedido
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+  // 1. Recebe os dados dos materiais vindos do Python
+  const materiaisDB = JSON.parse('{{ materiais_json | safe }}');
+  let contadorItens = 0;
+
+  // 2. Função para Adicionar Nova Linha
+  function adicionarItem() {
+    const tbody = document.getElementById("listaItens");
+    const index = contadorItens++;
+
+    const row = document.createElement("tr");
+    row.innerHTML = `
+            <td>
+                <select name="itens[${index}][material_id]" class="form-select material-select" onchange="selecionarMaterial(this)" required>
+                    <option value="" selected disabled>Escolha...</option>
+                    {% for m in materiais %}
+                    <option value="{{ m.id }}">{{ m.nome }} ({{ m.unidade }})</option>
+                    {% endfor %}
+                </select>
+                <div class="text-muted small mt-1 info-unidade">-</div>
+            </td>
+            <td>
+                <div class="input-group input-group-sm mb-1 area-medidas">
+                    <span class="input-group-text">L</span>
+                    <input type="number" step="0.01" name="itens[${index}][largura]" class="form-control calc-input" placeholder="Larg" disabled>
+                </div>
+                <div class="input-group input-group-sm area-medidas">
+                    <span class="input-group-text">A</span>
+                    <input type="number" step="0.01" name="itens[${index}][altura]" class="form-control calc-input" placeholder="Alt" disabled>
+                </div>
+            </td>
+            <td>
+                <input type="number" name="itens[${index}][quantidade]" class="form-control calc-input" value="1" min="1" required>
+            </td>
+            <td>
+                <div class="input-group">
+                    <span class="input-group-text">R$</span>
+                    <input type="number" step="0.01" name="itens[${index}][preco]" class="form-control preco-input" readonly>
+                </div>
+            </td>
+            <td class="align-middle text-end fw-bold text-dark subtotal-display">R$ 0,00</td>
+            <td class="align-middle text-center">
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="removerItem(this)">🗑️</button>
+            </td>
+        `;
+
+    tbody.appendChild(row);
+
+    // Adiciona eventos de cálculo aos inputs novos
+    row.querySelectorAll(".calc-input").forEach((input) => {
+      input.addEventListener("input", () => calcularLinha(row));
+    });
+  }
+
+  // 3. Função quando seleciona um Material
+  function selecionarMaterial(selectElement) {
+    const row = selectElement.closest("tr");
+    const materialId = selectElement.value;
+    const dados = materiaisDB[materialId];
+
+    // Habilita/Desabilita campos de medida baseado na unidade (m2 vs un)
+    const inputsMedida = row.querySelectorAll(".area-medidas input");
+    const infoUnidade = row.querySelector(".info-unidade");
+
+    if (dados.unidade === "m2") {
+      inputsMedida.forEach((input) => {
+        input.disabled = false;
+        input.required = true;
+      });
+      infoUnidade.innerText = `Cálculo por Área (m²)`;
+    } else {
+      inputsMedida.forEach((input) => {
+        input.disabled = true;
+        input.value = ""; // Limpa se mudou de m2 para un
+        input.required = false;
+      });
+      infoUnidade.innerText = `Venda Unitária (un)`;
+    }
+
+    atualizarPrecoLinha(row);
+  }
+
+  // 4. Define o preço (Revenda vs Normal)
+  function atualizarPrecos() {
+    document.querySelectorAll("#listaItens tr").forEach((row) => {
+      atualizarPrecoLinha(row);
+    });
+  }
+
+  function atualizarPrecoLinha(row) {
+    const selectMat = row.querySelector(".material-select");
+    if (!selectMat || !selectMat.value) return;
+
+    const materialId = selectMat.value;
+    const dados = materiaisDB[materialId];
+
+    // Verifica se o cliente é Revenda
+    const clienteSelect = document.getElementById("cliente_select");
+    const optionCliente = clienteSelect.options[clienteSelect.selectedIndex];
+    const isRevenda =
+      optionCliente && optionCliente.getAttribute("data-revenda") === "true";
+
+    // Define qual preço usar
+    const precoFinal = isRevenda ? dados.preco_revenda : dados.preco_venda;
+
+    // Atualiza o input visual
+    row.querySelector(".preco-input").value = precoFinal.toFixed(2);
+
+    calcularLinha(row);
+  }
+
+  // 5. O Motor Matemático (Cálculo)
+  function calcularLinha(row) {
+    const selectMat = row.querySelector(".material-select");
+    if (!selectMat.value) return;
+
+    const dados = materiaisDB[selectMat.value];
+    const preco = parseFloat(row.querySelector(".preco-input").value) || 0;
+    const qtd =
+      parseFloat(row.querySelector('input[name*="[quantidade]"]').value) || 0;
+
+    let subtotal = 0;
+
+    if (dados.unidade === "m2") {
+      const larg =
+        parseFloat(row.querySelector('input[name*="[largura]"]').value) || 0;
+      const alt =
+        parseFloat(row.querySelector('input[name*="[altura]"]').value) || 0;
+      const area = larg * alt;
+      // Regra de Negócio: Gráfica geralmente cobra mínimo de 1m2 (Opcional, não pus aqui pra não complicar)
+      subtotal = area * preco * qtd;
+    } else {
+      // Unidade ou Metro Linear
+      subtotal = preco * qtd;
+    }
+
+    // Atualiza visual da linha
+    row.querySelector(".subtotal-display").innerText = subtotal.toLocaleString(
+      "pt-BR",
+      { style: "currency", currency: "BRL" },
+    );
+
+    calcularTotalGeral();
+  }
+
+  // 6. Soma Total
+  function calcularTotalGeral() {
+    let total = 0;
+    document.querySelectorAll("#listaItens tr").forEach((row) => {
+      // Pega o valor texto 'R$ 100,00', limpa e converte
+      const texto = row.querySelector(".subtotal-display").innerText;
+      const valor = parseFloat(
+        texto.replace("R$", "").replace(".", "").replace(",", ".").trim(),
+      );
+      if (!isNaN(valor)) total += valor;
+    });
+
+    document.getElementById("valorTotalDisplay").innerText =
+      total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  }
+
+  // 7. Remove Linha
+  function removerItem(btn) {
+    btn.closest("tr").remove();
+    calcularTotalGeral();
+  }
+
+  // Inicia com uma linha vazia
+  window.onload = function () {
+    adicionarItem();
+  };
+</script>
+{% endblock %}

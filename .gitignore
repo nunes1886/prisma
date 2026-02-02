@@ -1,0 +1,15 @@
+# Ignorar ambiente virtual
+venv/
+env/
+
+# Ignorar arquivos compilados do Python
+__pycache__/
+*.py[cod]
+
+# Ignorar banco de dados local (opcional, mas recomendado)
+instance/
+*.db
+*.sqlite3
+
+# Ignorar configurações do VS Code
+.vscode/
