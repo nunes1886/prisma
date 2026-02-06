@@ -1,0 +1,177 @@
+{% extends "base.html" %} {% block content %}
+<div class="row mb-4 align-items-center">
+  <div class="col-md-8">
+    <h2>💰 Fluxo de Caixa</h2>
+  </div>
+  <div class="col-md-4 text-end">
+    <button
+      class="btn btn-success"
+      data-bs-toggle="modal"
+      data-bs-target="#modalLancamento"
+    >
+      + Novo Lançamento
+    </button>
+  </div>
+</div>
+
+<div class="row mb-4">
+  <div class="col-md-4">
+    <div class="card border-success border-2 shadow-sm">
+      <div class="card-body text-success">
+        <h6 class="text-uppercase mb-1">Total Entradas</h6>
+        <h3>R$ {{ "%.2f"|format(entradas) }}</h3>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card border-danger border-2 shadow-sm">
+      <div class="card-body text-danger">
+        <h6 class="text-uppercase mb-1">Total Saídas</h6>
+        <h3>R$ {{ "%.2f"|format(saidas) }}</h3>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div
+      class="card {% if saldo >= 0 %}bg-success{% else %}bg-danger{% endif %} text-white shadow"
+    >
+      <div class="card-body">
+        <h6 class="text-uppercase mb-1">Saldo Atual</h6>
+        <h3>R$ {{ "%.2f"|format(saldo) }}</h3>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body p-0">
+    <table class="table table-hover mb-0 align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Data</th>
+          <th>Descrição</th>
+          <th>Forma Pagto</th>
+          <th class="text-end">Valor</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for l in lancamentos %}
+        <tr>
+          <td>{{ l.data.strftime('%d/%m/%Y') }}</td>
+          <td>
+            {{ l.descricao }} {% if l.pedido_id %}
+            <a
+              href="{{ url_for('pedidos.visualizar', id=l.pedido_id) }}"
+              class="text-decoration-none small ms-1"
+              >🔗 Pedido #{{ l.pedido_id }}</a
+            >
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge bg-light text-dark border"
+              >{{ l.forma_pagamento }}</span
+            >
+          </td>
+          <td
+            class="text-end fw-bold {% if l.tipo == 'Entrada' %}text-success{% else %}text-danger{% endif %}"
+          >
+            {% if l.tipo == 'Saida' %}- {% endif %} R$ {{ "%.2f"|format(l.valor)
+            }}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4" class="text-center py-5 text-muted">
+            Nenhuma movimentação registrada.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="modal fade" id="modalLancamento" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Registrar Movimentação</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <form action="{{ url_for('financeiro.lancar') }}" method="POST">
+        <div class="modal-body">
+          <div class="row mb-3">
+            <div class="col-6">
+              <label>Tipo</label>
+              <select name="tipo" class="form-select text-center fw-bold">
+                <option value="Entrada" class="text-success">⬆ ENTRADA</option>
+                <option value="Saida" class="text-danger">⬇ SAÍDA</option>
+              </select>
+            </div>
+            <div class="col-6">
+              <label>Data</label>
+              <input
+                type="date"
+                name="data"
+                class="form-control"
+                value="{{ now }}"
+              />
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label>Descrição</label>
+            <input
+              type="text"
+              name="descricao"
+              class="form-control"
+              placeholder="Ex: Conta de Luz, Venda Balcão..."
+              required
+            />
+          </div>
+
+          <div class="row">
+            <div class="col-6">
+              <label>Valor (R$)</label>
+              <input
+                type="number"
+                step="0.01"
+                name="valor"
+                class="form-control"
+                placeholder="0.00"
+                required
+              />
+            </div>
+            <div class="col-6">
+              <label>Forma Pagto</label>
+              <select name="forma_pagamento" class="form-select">
+                <option value="Pix">Pix</option>
+                <option value="Dinheiro">Dinheiro</option>
+                <option value="Cartão Crédito">Cartão Crédito</option>
+                <option value="Cartão Débito">Cartão Débito</option>
+                <option value="Boleto">Boleto</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            data-bs-dismiss="modal"
+          >
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn-primary">
+            Salvar Lançamento
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
 from app.models import db, Pedido, ItemPedido, Cliente, Material
+from app.models import Etapa    
 from datetime import datetime
 import json
 
@@ -135,3 +136,33 @@ def alterar_status(id, novo_status):
     
     flash(f'Status atualizado para: {novo_status}', 'success')
     return redirect(url_for('pedidos.visualizar', id=id))
+
+# ... (Mantenha os imports e rotas anteriores)
+
+@pedidos_bp.route('/kanban')
+@login_required
+def kanban():
+    # Busca todas as colunas na ordem certa (1, 2, 3...)
+    etapas = Etapa.query.order_by(Etapa.ordem).all()
+    
+    # Precisamos mandar a lista de etapas para o 'mover' funcionar também
+    todas_etapas = Etapa.query.order_by(Etapa.ordem).all()
+
+    return render_template('pedidos/kanban.html', 
+                           etapas=etapas, 
+                           todas_etapas=todas_etapas)
+
+# Rota para mover pedido entre colunas
+@pedidos_bp.route('/pedidos/<int:id>/mover/<int:etapa_id>')
+@login_required
+def mover_pedido(id, etapa_id):
+    pedido = Pedido.query.get_or_404(id)
+    nova_etapa = Etapa.query.get_or_404(etapa_id)
+    
+    pedido.etapa_id = nova_etapa.id
+    # Opcional: Atualiza o status string antigo só pra manter histórico
+    pedido.status = nova_etapa.nome 
+    
+    db.session.commit()
+    flash(f'Pedido movido para: {nova_etapa.nome}', 'success')
+    return redirect(url_for('pedidos.kanban'))

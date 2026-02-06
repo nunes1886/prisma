@@ -63,6 +63,9 @@ def create_app():
     from .blueprints.pedidos import pedidos_bp
     app.register_blueprint(pedidos_bp)
 
+    from .blueprints.financeiro import financeiro_bp
+    app.register_blueprint(financeiro_bp)
+
     # --- ROTA DO DASHBOARD (ATUALIZADA) ---
     @app.route('/')
     @app.route('/dashboard')

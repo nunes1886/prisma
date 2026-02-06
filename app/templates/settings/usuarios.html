@@ -1,0 +1,119 @@
+{% extends "base.html" %} {% block content %}
+<div class="row mb-4">
+  <div class="col-12">
+    <h2>👥 Equipe de Vendas</h2>
+    <p class="text-muted">Gerencie quem tem acesso ao Sistema Prisma.</p>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-7">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-bold">Usuários Ativos</div>
+      <div class="card-body p-0">
+        <table class="table table-hover mb-0 align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Nome</th>
+              <th>Login</th>
+              <th>Função</th>
+              <th class="text-end">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in usuarios %}
+            <tr>
+              <td>
+                <strong>{{ u.nome_completo }}</strong>
+                {% if u.id == current_user.id %} (Você){% endif %}
+              </td>
+              <td>{{ u.username }}</td>
+              <td>
+                {% if u.nivel_acesso == 0 %}
+                <span class="badge bg-dark">Admin</span>
+                {% else %}
+                <span class="badge bg-info text-dark">Vendedor</span>
+                {% endif %}
+              </td>
+              <td class="text-end pe-3">
+                <a
+                  href="{{ url_for('settings.editar_usuario', id=u.id) }}"
+                  class="btn btn-sm btn-outline-primary me-1"
+                  >✏️</a
+                >
+
+                {% if u.id != current_user.id %}
+                <a
+                  href="{{ url_for('settings.deletar_usuario', id=u.id) }}"
+                  class="btn btn-sm btn-outline-danger"
+                  onclick="
+                    return confirm(
+                      'Tem certeza que deseja remover este usuário?',
+                    );
+                  "
+                  >🗑️</a
+                >
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-5">
+    <div class="card bg-primary text-white shadow">
+      <div class="card-header border-0 fw-bold text-white">+ Novo Membro</div>
+      <div class="card-body">
+        <form action="{{ url_for('settings.usuarios') }}" method="POST">
+          <div class="mb-3">
+            <label>Nome Completo</label>
+            <input
+              type="text"
+              name="nome"
+              class="form-control"
+              placeholder="Ex: Sócio Fulano"
+              required
+            />
+          </div>
+          <div class="mb-3">
+            <label>Login de Acesso</label>
+            <input
+              type="text"
+              name="username"
+              class="form-control"
+              placeholder="Ex: socio"
+              required
+            />
+          </div>
+          <div class="row mb-3">
+            <div class="col-6">
+              <label>Senha</label>
+              <input
+                type="password"
+                name="senha"
+                class="form-control"
+                required
+              />
+            </div>
+            <div class="col-6">
+              <label>Função</label>
+              <select name="nivel_acesso" class="form-select fw-bold text-dark">
+                <option value="1">Vendedor</option>
+                <option value="0">⭐ Admin (Total)</option>
+              </select>
+            </div>
+          </div>
+          <div class="d-grid">
+            <button type="submit" class="btn btn-light text-primary fw-bold">
+              Cadastrar Usuário
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

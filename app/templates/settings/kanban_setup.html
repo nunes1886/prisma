@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2>⚙️ Configurar Kanban</h2>
+        <p class="text-muted">Defina as etapas da sua produção (Ex: Arte, Impressão, Acabamento).</p>
+    </div>
+    <a href="{{ url_for('pedidos.kanban') }}" class="btn btn-secondary">⬅ Voltar para o Quadro</a>
+</div>
+
+<div class="row">
+    
+    <div class="col-md-7">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white fw-bold">
+                Etapas Ativas (Colunas)
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-center" style="width: 80px;">Ordem</th>
+                            <th>Nome da Etapa</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for etapa in etapas %}
+                        <tr>
+                            <td class="text-center">
+                                <span class="badge bg-secondary rounded-circle">{{ etapa.ordem }}</span>
+                            </td>
+                            <td class="fw-bold">{{ etapa.nome }}</td>
+                            <td class="text-end pe-3">
+                                <a href="{{ url_for('settings.deletar_etapa', id=etapa.id) }}" 
+                                   class="btn btn-sm btn-outline-danger"
+                                   onclick="return confirm('Tem certeza? Se houver pedidos nesta etapa, você não conseguirá apagar.')">
+                                    🗑️ Excluir
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="3" class="text-center py-4 text-muted">
+                                Nenhuma etapa cadastrada. O Kanban está vazio! 😱
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="alert alert-info mt-3 small">
+            <i class="bi bi-info-circle"></i> <strong>Dica:</strong> A "Ordem" define a sequência das colunas da esquerda para a direita.
+        </div>
+    </div>
+
+    <div class="col-md-5">
+        <div class="card bg-primary text-white shadow">
+            <div class="card-header border-0 fw-bold text-white">
+                + Nova Etapa
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('settings.kanban_setup') }}" method="POST">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Nome da Coluna</label>
+                        <input type="text" name="nome" class="form-control" placeholder="Ex: Acabamento / Ilhós" required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Ordem (Número)</label>
+                        <input type="number" name="ordem" class="form-control" placeholder="Ex: 3" required>
+                        <div class="form-text text-white-50">
+                            Quanto menor o número, mais à esquerda a coluna fica.
+                        </div>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-light text-primary fw-bold">Salvar Coluna</button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

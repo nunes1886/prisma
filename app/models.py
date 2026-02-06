@@ -58,24 +58,14 @@ class Material(db.Model):
 
 class Pedido(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
+    # ... (outros campos: data, cliente_id, usuario_id, valor_total) ...
     
-    # Status: 'Orcamento', 'Aprovado', 'Producao', 'Finalizado', 'Cancelado'
-    status = db.Column(db.String(20), default='Orcamento')
+    # REMOVER ou IGNORAR o campo antigo 'status' string se quiser, 
+    # mas vamos manter por compatibilidade por enquanto e usar o etapa_id como principal.
+    status = db.Column(db.String(20), default='Aguardando') 
     
-    # Relacionamentos
-    cliente_id = db.Column(db.Integer, db.ForeignKey('cliente.id'), nullable=False)
-    usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=False) # Quem atendeu
-    
-    # Totais (Cache para não precisar somar itens toda hora)
-    valor_total = db.Column(db.Float, default=0.0)
-    
-    # Relacionamento Reverso (Um Pedido tem Vários Itens)
-    itens = db.relationship('ItemPedido', backref='pedido', lazy=True, cascade="all, delete-orphan")
-    
-    # Para facilitar acesso aos dados do cliente/vendedor
-    cliente = db.relationship('Cliente', backref='pedidos')
-    vendedor = db.relationship('Usuario', backref='vendas')
+    # NOVO CAMPO: Em qual coluna esse pedido está?
+    etapa_id = db.Column(db.Integer, db.ForeignKey('etapa.id'), nullable=True)
 
 class ItemPedido(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -93,3 +83,35 @@ class ItemPedido(db.Model):
     
     # Relacionamento para pegar nome do material
     material = db.relationship('Material')
+
+    # ... (Classes anteriores: Usuario, Configuracao, Material, Cliente, Pedido, ItemPedido)
+
+class Lancamento(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    data = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Tipo: 'Entrada' (Dinheiro entrando) ou 'Saida' (Dinheiro saindo)
+    tipo = db.Column(db.String(10), nullable=False) 
+    
+    descricao = db.Column(db.String(200), nullable=False) # Ex: "Pagamento Pedido #4" ou "Conta de Luz"
+    valor = db.Column(db.Float, nullable=False)
+    
+    # Detalhes
+    forma_pagamento = db.Column(db.String(50)) # Pix, Dinheiro, Cartão Crédito, Boleto
+    
+    # Vínculo com Pedido (Opcional: Só preenche se for recebimento de venda)
+    pedido_id = db.Column(db.Integer, db.ForeignKey('pedido.id'), nullable=True)
+    
+    # Quem lançou isso no sistema?
+    usuario_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=True)
+
+    def __repr__(self):
+        return f'<Lancamento R$ {self.valor}>'
+    
+class Etapa(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(50), nullable=False)
+    ordem = db.Column(db.Integer, default=0) # 1, 2, 3... para ordenar na tela
+    
+    # Relacionamento com Pedidos
+    pedidos = db.relationship('Pedido', backref='etapa', lazy=True)

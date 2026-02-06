@@ -73,7 +73,9 @@
 
           <a href="#" class="nav-link">📊 Dashboard</a>
           <a href="#" class="nav-link">📝 Novo Pedido</a>
-          <a href="#" class="nav-link">🏗️ Kanban (Prod.)</a>
+          <a href="{{ url_for('pedidos.kanban') }}" class="nav-link"
+            >🏗️ Kanban (Prod.)</a
+          >
           <a href="{{ url_for('clientes.index') }}" class="nav-link"
             >👥 Clientes</a
           >
@@ -81,11 +83,18 @@
             >📦 Materiais</a
           >
 
-          {% if current_user.nivel_acesso <= 1 %}
-          <a href="#" class="nav-link">💰 Financeiro</a>
-          {% endif %} {% if current_user.nivel_acesso == 0 %}
+          <!-- {% if current_user.nivel_acesso <= 1 %} -->
+          <a href="{{ url_for('financeiro.index') }}" class="nav-link"
+            >💰 Financeiro</a
+          >
+          <!-- {% endif %} {% if current_user.nivel_acesso == 0 %} -->
           <a href="{{ url_for('settings.index') }}" class="nav-link"
             >⚙️ Configurações</a
+          >
+          <a
+            href="{{ url_for('settings.usuarios') }}"
+            class="nav-link ms-3 text-sm"
+            >👥 Equipe / Usuários</a
           >
           {% endif %}
 
