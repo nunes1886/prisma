@@ -4,6 +4,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import func
 
 # --- CONFIGURAÇÃO ---
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -107,6 +108,50 @@ def login():
 
 @app.route('/logout')
 def logout(): logout_user(); return redirect(url_for('login'))
+
+@app.route('/financeiro/baixar/<int:id>', methods=['POST'])
+@login_required
+def baixar_pagamento(id):
+    # Busca o lançamento ou retorna 404 se não existir
+    lancamento = Financeiro.query.get_or_404(id)
+    
+    if lancamento.status == 'Pendente':
+        lancamento.status = 'Pago'
+        # Usamos datetime.now().date() para registrar apenas o dia
+        # Certifique-se de que o modelo Financeiro tenha o campo data_pagamento
+        # Caso não tenha, o status 'Pago' já é um grande avanço
+        db.session.commit()
+        flash(f'Pagamento de R$ {lancamento.valor:.2f} recebido com sucesso!')
+    else:
+        flash('Este lançamento já consta como pago.')
+        
+    return redirect(url_for('financeiro'))
+
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    # KPI 1: Faturamento Total (Tudo que foi marcado como 'Pago')
+    faturamento_total = db.session.query(func.sum(Financeiro.valor)).filter(Financeiro.status == 'Pago').scalar() or 0.0
+    
+    # KPI 2: Receita Pendente (A receber)
+    a_receber = db.session.query(func.sum(Financeiro.valor)).filter(Financeiro.status == 'Pendente').scalar() or 0.0
+    
+    # KPI 3: Total de Pedidos Ativos
+    pedidos_ativos = Card.query.filter_by(is_archived=False).count()
+
+    # Dados para o Gráfico: Pedidos por Setor
+    setores = Setor.query.all()
+    labels_setores = [s.nome for s in setores]
+    valores_setores = [Card.query.filter_by(setor_id=s.id, is_archived=False).count() for s in setores]
+
+    return render_template('dashboard.html', 
+                           faturamento=faturamento_total, 
+                           receber=a_receber, 
+                           ativos=pedidos_ativos,
+                           labels_setores=labels_setores,
+                           valores_setores=valores_setores,
+                           user=current_user)
 
 # --- MÓDULO CLIENTES ---
 

@@ -47,11 +47,15 @@
                             </td>
                             <td class="text-center">
                                 {% if r.status == 'Pendente' %}
-                                <button class="btn btn-sm btn-outline-success">
-                                    <i class="bi bi-check-lg"></i> Baixar Pagamento
-                                </button>
+                                <form action="{{ url_for('baixar_pagamento', id=r.id) }}" method="POST">
+                                    <button type="submit" class="btn btn-sm btn-outline-success">
+                                        <i class="bi bi-check-lg"></i> Baixar Pagamento
+                                    </button>
+                                </form>
                                 {% else %}
-                                <span class="text-muted"><i class="bi bi-shield-check"></i> Pago</span>
+                                <span class="text-success fw-bold">
+                                    <i class="bi bi-shield-check"></i> Pago
+                                </span>
                                 {% endif %}
                             </td>
                         </tr>
