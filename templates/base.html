@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRISMA ERP</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-icons.css') }}">
+    <style>
+        body { background-color: #f8f9fa; }
+        .sidebar { min-height: 100vh; background: #212529; color: white; }
+        .nav-link { color: rgba(255,255,255,0.8); }
+        .nav-link:hover { color: white; background: rgba(255,255,255,0.1); }
+        .nav-link.active { background: #0d6efd; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <nav class="col-md-2 d-none d-md-block sidebar p-3">
+                <h3 class="text-center mb-4 text-primary fw-bold">PRISMA</h3>
+                <ul class="nav flex-column">
+                    <li class="nav-item mb-2">
+                        <a class="nav-link" href="{{ url_for('index') }}"><i class="bi bi-kanban"></i> Produção (Kanban)</a>
+                    </li>
+                    <li class="nav-item mb-2">
+                        <a class="nav-link" href="{{ url_for('listar_clientes') }}"><i class="bi bi-people"></i> Clientes</a>
+                    </li>
+                    <li class="nav-item mb-2">
+                        <a class="nav-link" href="{{ url_for('financeiro') }}"><i class="bi bi-cash-coin"></i> Financeiro</a>
+                    </li>
+                    <hr>
+                    <li class="nav-item">
+                        <a class="nav-link text-danger" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-left"></i> Sair</a>
+                    </li>
+                </ul>
+            </nav>
+
+            <main class="col-md-10 p-4">
+                {% with messages = get_flashed_messages() %}
+                  {% if messages %}
+                    {% for message in messages %}
+                      <div class="alert alert-info">{{ message }}</div>
+                    {% endfor %}
+                  {% endif %}
+                {% endwith %}
+                
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - PRISMA ERP</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-icons.css') }}">
+    <style>
+        body {
+            background: linear-gradient(135deg, #0d6efd 0%, #212529 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .brand-logo {
+            font-size: 3rem;
+            color: #0d6efd;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card login-card p-4">
+    <div class="card-body">
+        <div class="text-center mb-4">
+            <div class="brand-logo fw-bold">PRISMA</div>
+            <p class="text-muted">ERP para Gráficas</p>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            {% for message in messages %}
+              <div class="alert alert-danger py-2 small text-center">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form action="{{ url_for('login') }}" method="POST">
+            <div class="mb-3">
+                <label class="form-label">Usuário</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-person"></i></span>
+                    <input type="text" name="username" class="form-control" placeholder="admin" required autofocus>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label class="form-label">Senha</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                    <input type="password" name="password" class="form-control" placeholder="••••••" required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">
+                <i class="bi bi-box-arrow-in-right"></i> ACESSAR SISTEMA
+            </button>
+        </form>
+    </div>
+    <div class="card-footer bg-transparent border-0 text-center pb-4">
+        <small class="text-muted">v1.0 - Portfólio 2026</small>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+</body>
+</html>
