@@ -1,0 +1,17 @@
+# Banco de dados local
+prisma.db
+printflow.db
+
+# Ambiente Virtual
+venv/
+env/
+__pycache__/
+*.pyc
+
+# Uploads de imagens (opcional: se quiser que as fotos fiquem apenas locais)
+static/uploads/*
+!static/uploads/.gitkeep
+
+# Arquivos do VS Code e Sistema
+.vscode/
+.DS_Store
