@@ -220,6 +220,23 @@ def financeiro():
     total_receber = sum(r.valor for r in receitas if r.status == 'Pendente')
     return render_template('financeiro.html', receitas=receitas, despesas=despesas, total_receber=total_receber, user=current_user)
 
+@app.route('/orcamento/print/<int:id>')
+@login_required
+def print_orcamento(id):
+    card = Card.query.get_or_404(id)
+    # Busca o lançamento financeiro vinculado para mostrar condições de pagamento
+    financeiro = Financeiro.query.filter_by(card_id=id).first()
+    
+    # Dados da Empresa (Pode virar uma tabela Config depois)
+    empresa = {
+        "nome": "Gárafica Prisma Ltda ME",
+        "cnpj": "00.000.000/0001-00",
+        "endereco": "Rua Exemplo, 123 - Centro",
+        "telefone": "(79) 99999-9999"
+    }
+    
+    return render_template('orcamento_print.html', card=card, financeiro=financeiro, empresa=empresa)
+
 # --- INICIALIZAÇÃO ---
 
 if __name__ == '__main__':

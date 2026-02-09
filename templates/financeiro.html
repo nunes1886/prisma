@@ -38,6 +38,9 @@
                             <td>
                                 <strong>{{ r.descricao }}</strong><br>
                                 <small class="text-muted">Card ID #{{ r.card_id }}</small>
+                                <a href="{{ url_for('print_orcamento', id=r.card_id) }}" target="_blank" class="badge bg-light text-secondary border text-decoration-none">
+    <i class="bi bi-printer"></i> Recibo
+</a>
                             </td>
                             <td class="fw-bold text-success">R$ {{ "%.2f"|format(r.valor) }}</td>
                             <td>

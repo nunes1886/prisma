@@ -24,12 +24,21 @@
                             <p class="small text-muted mb-2">
                                 <i class="bi bi-person"></i> {{ card.cliente_ref.nome if card.cliente_ref else 'Sem cliente' }}
                             </p>
-                            <div class="d-flex justify-content-between align-items-center">
+                            
+                            <div class="d-flex justify-content-between align-items-center mb-2">
                                 <span class="badge bg-light text-dark border">
                                     <i class="bi bi-calendar-event"></i> {{ card.prazo }}
                                 </span>
                                 <span class="fw-bold text-primary">R$ {{ "%.2f"|format(card.valor_total) }}</span>
                             </div>
+
+                            <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                                <small class="text-muted" style="font-size: 0.75rem;">ID: #{{ card.id }}</small>
+                                <a href="{{ url_for('print_orcamento', id=card.id) }}" target="_blank" class="btn btn-sm btn-light text-secondary border-0" title="Imprimir Orçamento / PDF">
+                                    <i class="bi bi-printer-fill"></i> Imprimir
+                                </a>
+                            </div>
+
                         </div>
                     </div>
                     {% endfor %}

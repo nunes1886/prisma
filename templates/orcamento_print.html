@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Orçamento #{{ card.id }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #eee; }
+        .page {
+            background: white;
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm;
+            margin: 10mm auto;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        @media print {
+            body { background: white; margin: 0; }
+            .page { box-shadow: none; margin: 0; width: auto; height: auto; }
+            .no-print { display: none !important; }
+        }
+        .logo-placeholder {
+            width: 100px; height: 100px; background: #ddd; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container text-center mt-3 no-print">
+        <button onclick="window.print()" class="btn btn-primary btn-lg shadow">
+            <i class="bi bi-printer"></i> Imprimir / Salvar PDF
+        </button>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary btn-lg ms-2">Voltar</a>
+    </div>
+
+    <div class="page">
+        <div class="d-flex justify-content-between align-items-center mb-5 border-bottom pb-4">
+            <div class="d-flex align-items-center">
+                <div class="logo-placeholder me-3">LOGO</div> <div>
+                    <h2 class="fw-bold m-0">{{ empresa.nome }}</h2>
+                    <small class="text-muted">{{ empresa.cnpj }}<br>{{ empresa.endereco }}</small>
+                </div>
+            </div>
+            <div class="text-end">
+                <h4 class="text-uppercase text-muted mb-0">Orçamento</h4>
+                <h1 class="fw-bold text-primary">#{{ card.id }}</h1>
+                <small>Data: {{ card.data_criacao.strftime('%d/%m/%Y') }}</small>
+            </div>
+        </div>
+
+        <div class="row mb-5">
+            <div class="col-6">
+                <h6 class="text-uppercase fw-bold text-muted small">Cliente</h6>
+                <p class="mb-0 fs-5"><strong>{{ card.cliente_ref.nome }}</strong></p>
+                <p class="mb-0">Documento: {{ card.cliente_ref.documento or 'Não informado' }}</p>
+                <p>Contato: {{ card.cliente_ref.whatsapp or 'Não informado' }}</p>
+            </div>
+            <div class="col-6 text-end">
+                <h6 class="text-uppercase fw-bold text-muted small">Status do Pedido</h6>
+                <span class="badge bg-light text-dark border fs-6">{{ card.status_ref.nome if card.status_ref else 'Em Análise' }}</span>
+            </div>
+        </div>
+
+        <table class="table table-bordered mb-4">
+            <thead class="table-light">
+                <tr>
+                    <th>Descrição do Serviço / Produto</th>
+                    <th class="text-end" width="150">Valor</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="p-3">
+                        <h5 class="fw-bold">{{ card.titulo }}</h5>
+                        <p class="text-muted mb-0">{{ card.descricao }}</p>
+                    </td>
+                    <td class="text-end align-middle fs-5">R$ {{ "%.2f"|format(card.valor_total) }}</td>
+                </tr>
+            </tbody>
+            <tfoot class="table-light">
+                <tr>
+                    <td class="text-end fw-bold">TOTAL</td>
+                    <td class="text-end fw-bold fs-4">R$ {{ "%.2f"|format(card.valor_total) }}</td>
+                </tr>
+            </tfoot>
+        </table>
+
+        <div class="mt-5 pt-4 border-top text-center text-muted small">
+            <p>Este documento não possui valor fiscal. Válido por 15 dias.</p>
+            <p>Dúvidas? Entre em contato: <strong>{{ empresa.telefone }}</strong></p>
+        </div>
+    </div>
+
+</body>
+</html>
