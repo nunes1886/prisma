@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container">
+    <h2><i class="bi bi-gear"></i> Cadastro de Materiais (Preços)</h2>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card p-3 shadow-sm">
+                <form method="POST">
+                    <label>Nome do Material</label>
+                    <input type="text" name="nome" class="form-control mb-2" placeholder="Ex: Lona Front 440g" required>
+                    
+                    <label>Preço Final (m²)</label>
+                    <div class="input-group mb-2">
+                        <span class="input-group-text">R$</span>
+                        <input type="number" step="0.01" name="preco_final" class="form-control" placeholder="0.00" required>
+                    </div>
+
+                    <label>Preço Terceirizado (m²)</label>
+                    <div class="input-group mb-3">
+                        <span class="input-group-text">R$</span>
+                        <input type="number" step="0.01" name="preco_terceiro" class="form-control" placeholder="0.00" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100">Salvar Material</button>
+                </form>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <table class="table table-striped bg-white shadow-sm">
+                <thead>
+                    <tr>
+                        <th>Material</th>
+                        <th>Preço Final</th>
+                        <th>Preço Terceiro</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in materiais %}
+                    <tr>
+                        <td>{{ m.nome }}</td>
+                        <td>R$ {{ "%.2f"|format(m.preco_final) }}</td>
+                        <td>R$ {{ "%.2f"|format(m.preco_terceiro) }}</td>
+                        <td>
+                            <a href="{{ url_for('excluir_material', id=m.id) }}" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i></a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

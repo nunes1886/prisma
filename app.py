@@ -1,10 +1,11 @@
 import os
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
+from flask import Flask, render_template, request, redirect, url_for, flash
+from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from sqlalchemy import func
+
+# Importa o banco e as tabelas do arquivo models.py
+from models import db, Usuario, Cliente, Card, Financeiro, Setor, Status, Material
 
 # --- CONFIGURAÇÃO ---
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -13,153 +14,74 @@ app.config['SECRET_KEY'] = 'prisma-erp-2026-secure-token'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'prisma.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db = SQLAlchemy(app)
+# Inicializa o banco com este app
+db.init_app(app)
+
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# --- MODELOS ---
-
-usuario_setores = db.Table('usuario_setores',
-    db.Column('usuario_id', db.Integer, db.ForeignKey('usuarios.id'), primary_key=True),
-    db.Column('setor_id', db.Integer, db.ForeignKey('setores.id'), primary_key=True)
-)
-
-class Usuario(UserMixin, db.Model):
-    __tablename__ = 'usuarios'
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(100), unique=True, nullable=False)
-    senha = db.Column(db.String(200), nullable=False)
-    funcao = db.Column(db.String(20), default='colaborador')
-    acesso_estoque = db.Column(db.Boolean, default=False)
-    acessos = db.relationship('Setor', secondary=usuario_setores, backref=db.backref('usuarios_permitidos', lazy=True))
-
-    def set_password(self, password): self.senha = generate_password_hash(password)
-    def check_password(self, password): return check_password_hash(self.senha, password)
-
-class Cliente(db.Model):
-    __tablename__ = 'clientes'
-    id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(150), nullable=False)
-    tipo = db.Column(db.String(20)) # PF, PJ, TERCEIRO
-    documento = db.Column(db.String(20), unique=True)
-    whatsapp = db.Column(db.String(20))
-    pedidos = db.relationship('Card', backref='cliente_ref', lazy=True)
-
-class Card(db.Model):
-    __tablename__ = 'cards'
-    id = db.Column(db.Integer, primary_key=True)
-    titulo = db.Column(db.String(100), nullable=False)
-    descricao = db.Column(db.Text)
-    valor_total = db.Column(db.Float, default=0.0)
-    prazo = db.Column(db.String(20))
-    imagem_path = db.Column(db.Text)
-    is_archived = db.Column(db.Boolean, default=False)
-    data_criacao = db.Column(db.DateTime, default=datetime.now)
-    
-    cliente_id = db.Column(db.Integer, db.ForeignKey('clientes.id'))
-    setor_id = db.Column(db.Integer, db.ForeignKey('setores.id'))
-    status_id = db.Column(db.Integer, db.ForeignKey('status.id'))
-    financeiro = db.relationship('Financeiro', backref='card_ref', lazy=True)
-
-class Financeiro(db.Model):
-    __tablename__ = 'financeiro'
-    id = db.Column(db.Integer, primary_key=True)
-    tipo = db.Column(db.String(10), nullable=False) # RECEITA / DESPESA
-    descricao = db.Column(db.String(200))
-    valor = db.Column(db.Float, nullable=False)
-    status = db.Column(db.String(20), default='Pendente') # Pendente / Pago
-    data_vencimento = db.Column(db.Date, nullable=False)
-    card_id = db.Column(db.Integer, db.ForeignKey('cards.id'), nullable=True)
-
-class Setor(db.Model):
-    __tablename__ = 'setores'
-    id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(50), nullable=False)
-    ordem = db.Column(db.Integer, default=0)
-    cards = db.relationship('Card', backref='setor_ref', lazy=True)
-
-class Status(db.Model):
-    __tablename__ = 'status'
-    id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(50), nullable=False)
-    cor = db.Column(db.String(20), default='#CCCCCC')
-
 @login_manager.user_loader
-def load_user(user_id): return Usuario.query.get(int(user_id))
+def load_user(user_id):
+    return Usuario.query.get(int(user_id))
 
-# --- ROTAS PRINCIPAIS ---
+# --- ROTAS DE ACESSO ---
 
 @app.route('/')
 @login_required
 def index():
+    # Carrega colunas do Kanban
     setores = Setor.query.order_by(Setor.ordem).all()
-    clientes = Cliente.query.order_by(Cliente.nome).all()
-    status_list = Status.query.all()
-    return render_template('index.html', setores=setores, clientes=clientes, status_list=status_list, user=current_user)
+    return render_template('index.html', setores=setores, user=current_user)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         user = Usuario.query.filter_by(username=request.form.get('username')).first()
         if user and user.check_password(request.form.get('password')):
-            login_user(user); return redirect(url_for('index'))
-        flash('Credenciais inválidas.')
+            login_user(user)
+            return redirect(url_for('index'))
+        flash('Usuário ou senha inválidos.')
     return render_template('login.html')
 
 @app.route('/logout')
-def logout(): logout_user(); return redirect(url_for('login'))
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
 
-@app.route('/financeiro/baixar/<int:id>', methods=['POST'])
-@login_required
-def baixar_pagamento(id):
-    # Busca o lançamento ou retorna 404 se não existir
-    lancamento = Financeiro.query.get_or_404(id)
-    
-    if lancamento.status == 'Pendente':
-        lancamento.status = 'Pago'
-        # Usamos datetime.now().date() para registrar apenas o dia
-        # Certifique-se de que o modelo Financeiro tenha o campo data_pagamento
-        # Caso não tenha, o status 'Pago' já é um grande avanço
-        db.session.commit()
-        flash(f'Pagamento de R$ {lancamento.valor:.2f} recebido com sucesso!')
-    else:
-        flash('Este lançamento já consta como pago.')
-        
-    return redirect(url_for('financeiro'))
-
+# --- ROTAS DE GESTÃO (Admin) ---
 
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    # KPI 1: Faturamento Total (Tudo que foi marcado como 'Pago')
-    faturamento_total = db.session.query(func.sum(Financeiro.valor)).filter(Financeiro.status == 'Pago').scalar() or 0.0
-    
-    # KPI 2: Receita Pendente (A receber)
-    a_receber = db.session.query(func.sum(Financeiro.valor)).filter(Financeiro.status == 'Pendente').scalar() or 0.0
-    
-    # KPI 3: Total de Pedidos Ativos
-    pedidos_ativos = Card.query.filter_by(is_archived=False).count()
+    if current_user.funcao != 'admin': return redirect(url_for('index'))
 
-    # Dados para o Gráfico: Pedidos por Setor
+    # KPIs
+    faturamento = db.session.query(func.sum(Financeiro.valor)).filter(Financeiro.status == 'Pago').scalar() or 0.0
+    a_receber = db.session.query(func.sum(Financeiro.valor)).filter(Financeiro.status == 'Pendente').scalar() or 0.0
+    ativos = Card.query.filter_by(is_archived=False).count()
+
+    # Dados do Gráfico
     setores = Setor.query.all()
     labels_setores = [s.nome for s in setores]
     valores_setores = [Card.query.filter_by(setor_id=s.id, is_archived=False).count() for s in setores]
 
-    return render_template('dashboard.html', 
-                           faturamento=faturamento_total, 
-                           receber=a_receber, 
-                           ativos=pedidos_ativos,
-                           labels_setores=labels_setores,
-                           valores_setores=valores_setores,
-                           user=current_user)
+    return render_template('dashboard.html', faturamento=faturamento, receber=a_receber, ativos=ativos,
+                           labels_setores=labels_setores, valores_setores=valores_setores)
 
-# --- MÓDULO CLIENTES ---
+@app.route('/usuarios')
+@login_required
+def usuarios():
+    if current_user.funcao != 'admin': return redirect(url_for('index'))
+    lista_users = Usuario.query.all()
+    return render_template('usuarios.html', usuarios=lista_users) # Você precisará criar esse HTML depois se quiser gerenciar
+
+# --- ROTAS DE VENDAS E CLIENTES ---
 
 @app.route('/clientes')
 @login_required
 def listar_clientes():
     clientes = Cliente.query.order_by(Cliente.nome).all()
-    return render_template('clientes.html', clientes=clientes, user=current_user)
+    return render_template('clientes.html', clientes=clientes)
 
 @app.route('/cliente/novo', methods=['POST'])
 @login_required
@@ -167,88 +89,174 @@ def novo_cliente():
     try:
         c = Cliente(
             nome=request.form.get('nome'),
-            tipo=request.form.get('tipo'),
+            tipo=request.form.get('tipo'), # Final, Terceiro, etc
             documento=request.form.get('documento'),
             whatsapp=request.form.get('whatsapp')
         )
         db.session.add(c); db.session.commit()
         flash('Cliente cadastrado!')
-    except: flash('Erro ao cadastrar documento duplicado.')
+    except:
+        flash('Erro: Verifique se o documento já existe.')
     return redirect(url_for('listar_clientes'))
 
-# --- MÓDULO VENDA E FINANCEIRO ---
-
-@app.route('/venda/nova', methods=['POST'])
+@app.route('/pedido/novo', methods=['GET', 'POST'])
 @login_required
-def criar_venda():
-    # Pega o primeiro setor (ex: Atendimento) e primeiro status
-    setor_ini = Setor.query.order_by(Setor.ordem).first()
-    status_ini = Status.query.first()
-    
-    # 1. Cria o Pedido (Card)
-    novo_card = Card(
-        titulo=request.form.get('servico'),
-        descricao=request.form.get('detalhes'),
-        valor_total=float(request.form.get('valor')),
-        cliente_id=int(request.form.get('cliente_id')),
-        setor_id=setor_ini.id,
-        status_id=status_ini.id,
-        prazo=request.form.get('prazo')
-    )
-    db.session.add(novo_card)
-    db.session.flush() # Garante o ID para o financeiro
+def novo_pedido():
+    # Bloqueia quem é da produção
+    if current_user.funcao == 'producao':
+        flash('Acesso restrito.', 'warning')
+        return redirect(url_for('index'))
 
-    # 2. Lança Receita no Financeiro
-    data_venc = datetime.strptime(request.form.get('prazo'), '%Y-%m-%d').date()
-    lancamento = Financeiro(
-        tipo='RECEITA',
-        descricao=f"Pedido #{novo_card.id} - {novo_card.titulo}",
-        valor=novo_card.valor_total,
-        data_vencimento=data_venc,
-        card_id=novo_card.id
-    )
-    db.session.add(lancamento)
-    db.session.commit()
-    flash('Venda realizada com sucesso!')
-    return redirect(url_for('index'))
+    if request.method == 'POST':
+        try:
+            # Dados do Form
+            cliente_id = int(request.form.get('cliente_id'))
+            prazo = request.form.get('prazo')
+            resumo_itens = request.form.get('resumo_itens') # Vem do JS
+            valor_total = float(request.form.get('valor_total_pedido'))
+            titulo_pedido = request.form.get('titulo_pedido')
+
+            # Setores Padrão
+            setor_ini = Setor.query.order_by(Setor.ordem).first()
+            status_ini = Status.query.first()
+
+            # Cria Card
+            novo_card = Card(
+                titulo=titulo_pedido,
+                descricao=resumo_itens,
+                valor_total=valor_total,
+                cliente_id=cliente_id,
+                setor_id=setor_ini.id,
+                status_id=status_ini.id,
+                prazo=prazo,
+                created_by=current_user.username
+            )
+            db.session.add(novo_card)
+            db.session.flush() # Gera o ID
+
+            # Gera Financeiro
+            if valor_total > 0:
+                dt_venc = datetime.strptime(prazo, '%Y-%m-%d').date()
+                fin = Financeiro(
+                    tipo='RECEITA',
+                    descricao=f"Pedido #{novo_card.id} - {titulo_pedido}",
+                    valor=valor_total,
+                    data_vencimento=dt_venc,
+                    card_id=novo_card.id
+                )
+                db.session.add(fin)
+            
+            db.session.commit()
+            flash('Pedido criado com sucesso!', 'success')
+            return redirect(url_for('index'))
+
+        except Exception as e:
+            db.session.rollback()
+            return f"Erro ao salvar: {e}"
+
+    # GET: Mostra tela
+    clientes = Cliente.query.order_by(Cliente.nome).all()
+    materiais = Material.query.order_by(Material.nome).all()
+    return render_template('novo_pedido.html', clientes=clientes, materiais=materiais)
+
+# --- ROTAS FINANCEIRAS E CONFIG ---
 
 @app.route('/financeiro')
 @login_required
 def financeiro():
+    if current_user.funcao == 'producao': return redirect(url_for('index'))
     receitas = Financeiro.query.filter_by(tipo='RECEITA').all()
-    despesas = Financeiro.query.filter_by(tipo='DESPESA').all()
     total_receber = sum(r.valor for r in receitas if r.status == 'Pendente')
-    return render_template('financeiro.html', receitas=receitas, despesas=despesas, total_receber=total_receber, user=current_user)
+    return render_template('financeiro.html', receitas=receitas, total_receber=total_receber)
+
+@app.route('/financeiro/baixar/<int:id>', methods=['POST'])
+@login_required
+def baixar_pagamento(id):
+    lancamento = Financeiro.query.get_or_404(id)
+    if lancamento.status == 'Pendente':
+        lancamento.status = 'Pago'
+        lancamento.data_pagamento = datetime.now().date()
+        db.session.commit()
+        flash('Pagamento confirmado!')
+    return redirect(url_for('financeiro'))
+
+@app.route('/config/materiais', methods=['GET', 'POST'])
+@login_required
+def config_materiais():
+    if current_user.funcao != 'admin': return redirect(url_for('index'))
+    
+    if request.method == 'POST':
+        try:
+            m = Material(
+                nome=request.form.get('nome'),
+                preco_final=float(request.form.get('preco_final').replace(',', '.')),
+                preco_terceiro=float(request.form.get('preco_terceiro').replace(',', '.'))
+            )
+            db.session.add(m)
+            db.session.commit()
+            flash('Material salvo!')
+        except: flash('Erro ao salvar material.')
+        
+    materiais = Material.query.all()
+    return render_template('config_materiais.html', materiais=materiais)
+
+@app.route('/material/excluir/<int:id>')
+@login_required
+def excluir_material(id):
+    if current_user.funcao == 'admin':
+        m = Material.query.get(id)
+        if m: db.session.delete(m); db.session.commit()
+    return redirect(url_for('config_materiais'))
 
 @app.route('/orcamento/print/<int:id>')
 @login_required
 def print_orcamento(id):
     card = Card.query.get_or_404(id)
-    # Busca o lançamento financeiro vinculado para mostrar condições de pagamento
-    financeiro = Financeiro.query.filter_by(card_id=id).first()
-    
-    # Dados da Empresa (Pode virar uma tabela Config depois)
-    empresa = {
-        "nome": "Gárafica Prisma Ltda ME",
-        "cnpj": "00.000.000/0001-00",
-        "endereco": "Rua Exemplo, 123 - Centro",
-        "telefone": "(79) 99999-9999"
-    }
-    
-    return render_template('orcamento_print.html', card=card, financeiro=financeiro, empresa=empresa)
+    fin = Financeiro.query.filter_by(card_id=id).first()
+    return render_template('orcamento_print.html', card=card, financeiro=fin)
 
-# --- INICIALIZAÇÃO ---
+# --- INICIALIZAÇÃO DO BANCO (RESET) ---
 
 if __name__ == '__main__':
     with app.app_context():
+        # Cria todas as tabelas novas do models.py
         db.create_all()
-        # Seed inicial
+
+        # 1. Cria Admin se não existir
         if not Usuario.query.filter_by(username='admin').first():
-            u = Usuario(username='admin', funcao='admin'); u.set_password('admin'); db.session.add(u)
+            admin = Usuario(username='admin', funcao='admin')
+            admin.set_password('123') # Senha padrão
+            db.session.add(admin)
+            print(">>> Admin criado.")
+
+        # 2. Cria Setores Iniciais
         if not Setor.query.first():
-            db.session.add(Setor(nome="Atendimento", ordem=1))
-            db.session.add(Setor(nome="Produção", ordem=2))
+            db.session.add_all([
+                Setor(nome="Arte", ordem=1),
+                Setor(nome="Impressão", ordem=2),
+                Setor(nome="Acabamento", ordem=3),
+                Setor(nome="Entrega", ordem=4)
+            ])
+            print(">>> Setores criados.")
+
+        # 3. Cria Status Iniciais
         if not Status.query.first():
-            db.session.add(Status(nome="Aguardando", cor="#ffcc00"))
+            db.session.add_all([
+                Status(nome="Aguardando", cor="#ffc107"),
+                Status(nome="Produzindo", cor="#0d6efd"),
+                Status(nome="Pronto", cor="#198754")
+            ])
+            print(">>> Status criados.")
+
+        # 4. Cria Materiais de Exemplo
+        if not Material.query.first():
+            db.session.add_all([
+                Material(nome="Lona 440g", preco_final=80.0, preco_terceiro=45.0),
+                Material(nome="Adesivo Vinil", preco_final=90.0, preco_terceiro=55.0)
+            ])
+            print(">>> Materiais criados.")
+
         db.session.commit()
+        print(">>> Banco de dados PRISMA pronto!")
+
     app.run(debug=True)

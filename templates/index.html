@@ -3,9 +3,12 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2><i class="bi bi-kanban"></i> Fluxo de Produção</h2>
-        <button class="btn btn-primary shadow" data-bs-toggle="modal" data-bs-target="#modalVenda">
+        
+        {% if current_user.funcao in ['admin', 'vendas'] %}
+        <a href="{{ url_for('novo_pedido') }}" class="btn btn-primary shadow">
             <i class="bi bi-cart-plus-fill"></i> Nova Venda / Orçamento
-        </button>
+        </a>
+        {% endif %}
     </div>
 
     <div class="row flex-nowrap overflow-auto pb-3">
@@ -34,11 +37,11 @@
 
                             <div class="d-flex justify-content-between align-items-center pt-2 border-top">
                                 <small class="text-muted" style="font-size: 0.75rem;">ID: #{{ card.id }}</small>
+                                
                                 <a href="{{ url_for('print_orcamento', id=card.id) }}" target="_blank" class="btn btn-sm btn-light text-secondary border-0" title="Imprimir Orçamento / PDF">
-                                    <i class="bi bi-printer-fill"></i> Imprimir
+                                    <i class="bi bi-printer-fill"></i>
                                 </a>
                             </div>
-
                         </div>
                     </div>
                     {% endfor %}
@@ -49,50 +52,4 @@
     </div>
 </div>
 
-<div class="modal fade" id="modalVenda" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <form action="{{ url_for('criar_venda') }}" method="POST" class="modal-content border-0 shadow">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title"><i class="bi bi-cash-stack"></i> Novo Pedido & Financeiro</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row">
-                    <div class="col-md-7 border-end">
-                        <div class="mb-3">
-                            <label class="form-label">Cliente</label>
-                            <select name="cliente_id" class="form-select" required>
-                                <option value="" selected disabled>Selecione...</option>
-                                {% for cliente in clientes %}
-                                <option value="{{ cliente.id }}">{{ cliente.nome }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">O que será produzido?</label>
-                            <input type="text" name="servico" class="form-control" required placeholder="Ex: Banner 1x1m">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Detalhes</label>
-                            <textarea name="detalhes" class="form-control" rows="2"></textarea>
-                        </div>
-                    </div>
-                    <div class="col-md-5">
-                        <div class="mb-3">
-                            <label class="form-label text-success fw-bold">Valor Total (R$)</label>
-                            <input type="number" step="0.01" name="valor" class="form-control form-control-lg border-success" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Prazo de Entrega</label>
-                            <input type="date" name="prazo" class="form-control" required>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="submit" class="btn btn-primary w-100">Gerar Pedido e Financeiro</button>
-            </div>
-        </form>
-    </div>
-</div>
 {% endblock %}
